@@ -21,6 +21,7 @@
 - [2026-10-05] LLM-only verified live on real export+freeform mix: batch=1, amounts/items self-check prompt, no-repeat-amounts rule, unique first-token sender canon. Result: 9 expenses, Rs.1165, 5 members, 0 Unknown, 1 honest warning (line 2 descs). run1.pdf garbage (Unknown pays, timestamp amounts) resolved: root causes were raw timestamps fed to model + ROOMMATES-gated payer search.
 - [2026-10-05] Members input field REMOVED per user (silent guessing backfires). Members = model's payers, shown as caption, corrected in edit table. .env ROOMMATES stays as optional fixed-roster override. Repo de-identified for GitHub: fictional sample, empty textarea + placeholder, .gitignore (.env, data/, pdfs), run1.pdf deleted. Re-verified on fictional data: 9/Rs.1165/5 members, UI HTTP 200.
 - [2026-10-05] README rewritten for open source (usage, config table, architecture, privacy, contributing). .env.example cleaned (no fallback mention, empty ROOMMATES, dropped unread keys). check.py 20/20.
+- [2026-10-05] Fixed lying error: empty-model-result blamed Ollama-down. Now per-batch failures warn+skip, OLLAMA_HINT only on real connection failure, honest "reachable but found nothing" otherwise. Prompt now keeps person-to-person transfers as rows (desc names receiver). Verified on user's 8 lines: 9 expenses incl. 100 sent + 220 udhaar, 20/20 green.
 
 ## In-progress
 - S0: TRACKER.md / .env.example / README skeleton

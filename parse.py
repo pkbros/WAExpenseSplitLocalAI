@@ -26,7 +26,9 @@ SYSTEM = (
     "When ONE amount covers several items ('Sabji+atta+kela -->370'), return ONE item with that amount "
     "and the combined desc - NEVER repeat the same amount across items. "
     "desc is short item text. date is the bracket date, or null if absent. "
-    "Skip system and chit-chat lines (joined, left, Media omitted, deleted, no amount) by omitting them from BOTH arrays. "
+    "Skip pure chit-chat and system lines (joined, left, Media omitted, deleted, no amount) "
+    "by omitting them from BOTH arrays. Person-to-person payments (udhaar, loan, 'sent 100 to Aniket') "
+    "ARE items: payer is the sender, desc names the receiver (e.g. \"udhaar to Aniket\") - the user filters them in the table. "
     "Example: '1. [2026-09-28] Prateek Sharma: 100 sabji aata | 2. [2026-09-29] Atul: Sabji --> 40 + 30' -> "
     "{\"amounts\":[100,40,30],\"items\":["
     "{\"payer\":\"Prateek Sharma\",\"amount\":100,\"desc\":\"sabji aata\",\"date\":\"2026-09-28\"},"
@@ -206,6 +208,7 @@ def llm_parse(lines, cfg, batch=1):
     canon = list(cfg["ROOMMATES"]) or discover_senders(kept)
     infos = [parse_wa_header(l) for l in kept]
     out, warnings = [], []
+    exc_batches = 0
     for b in range(0, len(kept), batch):
         chunk, chunk_no = kept[b:b + batch], kept_no[b:b + batch]
         ch_infos = infos[b:b + batch]
@@ -226,10 +229,13 @@ def llm_parse(lines, cfg, batch=1):
                 data = _chat(client, cfg, user, retry=True)
                 items = [e for e in (coerce_expense(i, canon) for i in coerce_items(data)) if e]
         except Exception as e:
-            raise RuntimeError(OLLAMA_HINT + f"\n(detail: {e})")
+            exc_batches += 1
+            warnings.append(f"lines {chunk_no[0]}-{chunk_no[-1]}: model call failed ({e}) - skipped.")
+            continue
         if not items:
-            raise RuntimeError(
-                f"Model returned nothing usable for lines {chunk_no[0]}-{chunk_no[-1]} after retry.\n" + OLLAMA_HINT)
+            warnings.append(
+                f"line {chunk_no[0]}: model found no expense here - add it manually in the table if it is one.")
+            continue
         if isinstance(data, dict) and isinstance(data.get("amounts"), list) \
                 and len(data["amounts"]) != len(items):
             warnings.append(
@@ -261,6 +267,12 @@ def llm_parse(lines, cfg, batch=1):
             if not e["date"]:
                 e["date"] = date.today().isoformat()
             out.append(e)
+    if not out:
+        if exc_batches:
+            raise RuntimeError(OLLAMA_HINT + "\n(every model call failed - the server looks down.)")
+        raise RuntimeError(
+            f"No expenses found in {len(kept)} lines. The model IS reachable but saw nothing to split. "
+            f"Rephrase lines with a clear amount and retry.")
     out.sort(key=lambda e: int(re.sub(r"\D", "", e.get("source", "0").split("-")[0]) or 0))
     return out, warnings
 
