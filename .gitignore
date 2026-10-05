@@ -1,0 +1,6 @@
+# Local-only: secrets, generated artifacts, model pulls, OS noise
+.env
+data/
+__pycache__/
+*.pyc
+*.pdf

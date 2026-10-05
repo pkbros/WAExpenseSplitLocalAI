@@ -1,0 +1,5 @@
+# Core deps only. Streamlit is the heaviest; justified for 3-hr demo + screenshots.
+# settle/parse CLI works without streamlit installed (lazy import in app.py only).
+streamlit>=1.36
+ollama>=0.4
+python-dotenv>=1.0
